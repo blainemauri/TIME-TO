@@ -1,0 +1,14 @@
+id,on,time,rule,msg,snooze_a,snooze_b,vibe,strength,sound,flags,every,last,until,color
+# Lines starting with # are ignored. Only `time` is required; empty columns take the defaults.
+,1,06:45,weekdays,Wake up,9,30,Heartbeat,80,Rise,r,,,,ff5500
+,1,08:30,weekends,Lie in is over,15,60,,,,,,,,
+,1,09:00,weekdays,Drink water,10,2h,Double,40,none,,120,17:00,,0055ff
+,1,21:30,daily,Take meds,5,117h,,,Chime,,,,,00aa00
+,1,19:00,weekly=tu/2@2026-11-17,Bins out (every other Tuesday),20,12h,,,,,,,,
+,1,10:00,monthly=-1,Pay the credit card,1h,1d,,,,,,,,
+,1,18:00,nth=2th,Book club,30,2h,,,,,,,,aa00ff
+,1,09:00,yearly=03-14,Mum's birthday,1h,1d,,,Bells,,,,,ff55aa
+,1,12:00,yday=256,Happy programmers' day,,,,,,,,,,
+,1,07:00,daily/3,Water the plants,1h,1d,,,,,,,,00aaaa
+,1,17:30,2026-12-24,Pick up the turkey,15,1h,SOS,100,Alarm,a,,,,
+,1,14:00,daily,Physio exercises,30,2h,,,,,,,2026-12-31,

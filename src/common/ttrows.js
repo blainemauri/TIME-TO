@@ -647,6 +647,38 @@ function describeAlarm(a, h24) {
   return s + (a.msg ? ' - ' + a.msg : '');
 }
 
+/**
+ * Quick add: "7:30 weekdays Wake up", "6:45pm in 3 days Dentist", "19:00 nth=2tu Bins".
+ * The time comes first, then the longest rule that parses (up to 3 words),
+ * then the message. With no rule it is a one-off at the next such time.
+ */
+function quickParse(text, now) {
+  var words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) throw new Error('Start with a time, like 7:30');
+  var minute = parseClock(words[0]);
+  var used = 1;
+  if (minute === null && words[1] && /^[ap]\.?m\.?$/i.test(words[1])) {
+    minute = parseClock(words[0] + words[1]);
+    used = 2;
+  }
+  if (minute === null) throw new Error('"' + words[0] + '" is not a time');
+  var a = newAlarm();
+  a.minute = minute;
+  var rule = null;
+  for (var n = Math.min(3, words.length - used); n >= 1 && !rule; n--) {
+    rule = parseRule(words.slice(used, used + n).join(' '), now);
+    if (rule) used += n;
+  }
+  if (!rule) {
+    var here = epochToLocal(Math.floor((now || Date.now()) / 1000));
+    rule = newRule('once');
+    rule.date = civilFromDays(minute > here.minute ? here.day : here.day + 1);
+  }
+  a.rule = rule;
+  a.msg = words.slice(used).join(' ').slice(0, MSG_MAX);
+  return a;
+}
+
 // ---------------------------------------------------------------- patterns, tunes, settings
 
 function parsePattern(row) {
@@ -737,6 +769,7 @@ module.exports = {
   formatAlarm: formatAlarm,
   nextOccurrence: nextOccurrence,
   describeAlarm: describeAlarm,
+  quickParse: quickParse,
   parsePattern: parsePattern,
   formatPattern: formatPattern,
   parseTune: parseTune,

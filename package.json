@@ -119,7 +119,7 @@
       "actions": [
         {
           "name": "add_alarm",
-          "description": "Create an alarm on the watch. Give `time` (HH:MM, 24h) and optionally `rule` (when it repeats: 'daily', 'weekdays', 'weekly=mo.we.fr', 'monthly=15', 'nth=2tu', 'yearly=03-14', a date like '2026-12-25', or 'in 3 days'), `message`, and snooze lengths such as '10m' or '117h'. Or pass a whole CSV `row`.",
+          "description": "Create an alarm on the watch. Easiest: `text` like '7:30 weekdays Wake up' or '18:00 in 3 days Call mum'. Or give `time` (HH:MM, 24h) and optionally `rule` ('daily', 'weekdays', 'weekly=mo.we.fr', 'monthly=15', 'monthly=-1' for the last day, 'nth=2tu' for the 2nd Tuesday, 'yearly=03-14', 'yday=256', a date like '2026-12-25', 'tomorrow', 'friday' or 'in 3 days'), `message`, and snooze lengths such as '10m' or '117h'. Or pass a whole CSV `row`.",
           "parameters": {
             "type": "object",
             "properties": {
@@ -146,6 +146,10 @@
               "row": {
                 "type": "string",
                 "description": "A complete alarm CSV row, instead of the fields above."
+              },
+              "text": {
+                "type": "string",
+                "description": "Or one line such as '7:30 weekdays Wake up' or '18:00 in 3 days Call mum': the time, then when, then the message."
               }
             },
             "required": []

@@ -154,6 +154,7 @@ function nextDateFor(minute) {
 function alarmFromArgs(args) {
   args = args || {};
   if (args.row) return tt.parseAlarm(String(args.row));
+  if (args.text && !args.time) return tt.quickParse(String(args.text));
   var a = tt.newAlarm();
   if (args.time === undefined || args.time === '') throw new Error('time: give a time such as 07:30');
   a.minute = tt.parseClock(args.time);

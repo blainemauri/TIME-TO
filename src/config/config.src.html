@@ -585,34 +585,7 @@ $('tabs').addEventListener('click', function (e) {
 
 // ------------------------------------------------------------- quick add
 
-/** "7:30 weekdays Wake up" -> an alarm. Tries the longest rule it can find after the time. */
-function quickParse(text) {
-  var words = String(text).trim().split(/\s+/);
-  if (!words[0]) throw new Error('Start with a time, like 7:30');
-  var minute = tt.parseClock(words[0]);
-  var used = 1;
-  if (minute === null && words[1] && /^[ap]\.?m\.?$/i.test(words[1])) {
-    minute = tt.parseClock(words[0] + words[1]);
-    used = 2;
-  }
-  if (minute === null) throw new Error('"' + words[0] + '" is not a time');
-  var a = tt.newAlarm();
-  a.minute = minute;
-  var rule = null;
-  for (var n = Math.min(3, words.length - used); n >= 1 && !rule; n--) {
-    var candidate = words.slice(used, used + n).join(' ');
-    rule = tt.parseRule(candidate);
-    if (rule) used += n;
-  }
-  if (!rule) {
-    var here = tt.epochToLocal(Math.floor(Date.now() / 1000));
-    rule = tt.newRule('once');
-    rule.date = tt.civilFromDays(minute > here.minute ? here.day : here.day + 1);
-  }
-  a.rule = rule;
-  a.msg = words.slice(used).join(' ').slice(0, tt.MSG_MAX);
-  return a;
-}
+var quickParse = function (text) { return tt.quickParse(text); };
 
 function quickPreview() {
   var text = $('quick').value;

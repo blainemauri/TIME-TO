@@ -20,7 +20,7 @@ static void prv_reload(AppGlanceReloadSession *session, size_t limit, void *cont
       continue;
     }
     snprintf(text, sizeof(text),
-             "{time_until(%ld)|format(>=1d:'%%ud',>=1M:'%%aR','now')}: %s", (long)s_occ[i].when,
+             "{time_until(%ld)|format(>=1d:'in %%fdd %%Hh',>=1M:'in %%aR','now')}: %s", (long)s_occ[i].when,
              a->msg[0] ? a->msg : "Alarm");
     const AppGlanceSlice slice = {
         .layout = {.icon = APP_GLANCE_SLICE_DEFAULT_ICON, .subtitle_template_string = text},
