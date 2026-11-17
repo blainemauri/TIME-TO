@@ -1,0 +1,5 @@
+build/
+node_modules/
+.lock-waf*
+*.pbw
+src/pkjs/config_html.js
