@@ -17,7 +17,13 @@ void alarm_summary(const TTAlarm *a, char *buf, size_t cap) {
   char clock[12];
   char rule[40];
   ui_format_clock(a->minute, clock, sizeof(clock));
-  tt_rule_describe(&a->rule, rule, sizeof(rule));
+  if (a->rule.kind == TT_RULE_ONCE && tt_date_is_set(a->rule.date)) {
+    char day[24];
+    ui_format_day(tt_local_to_epoch(tt_date_to_days(a->rule.date), 720), day, sizeof(day));
+    snprintf(rule, sizeof(rule), "Once, %s", day);
+  } else {
+    tt_rule_describe(&a->rule, rule, sizeof(rule));
+  }
   if (a->every) {
     char every[12];
     tt_format_duration(a->every, every, sizeof(every));
@@ -181,7 +187,9 @@ static void prv_list_row(void *ctx, uint16_t section, uint16_t row, ListRow *out
     out->flags |= LIST_DIM;
     tt_copy(out->right, sizeof(out->right), a->missed ? "missed" : "off");
   } else if (a->snooze_until) {
-    tt_copy(out->right, sizeof(out->right), "zz");
+    char until[12];
+    tt_widget_format_until(a->snooze_until, until, sizeof(until));
+    snprintf(out->right, sizeof(out->right), "z %s", until);
   } else if (sched_is_skipping(a)) {
     tt_copy(out->right, sizeof(out->right), "skip");
   } else if (a->next) {
