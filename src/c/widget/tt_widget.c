@@ -50,11 +50,11 @@ void tt_widget_format_when(time_t when, char *buf, size_t cap) {
 
 void tt_widget_format_until(time_t when, char *buf, size_t cap) {
   long seconds = (long)(when - time(NULL));
-  if (seconds < 60) {
+  if (seconds <= 0) {
     snprintf(buf, cap, "now");
     return;
   }
-  long minutes = seconds / 60;
+  long minutes = (seconds + 59) / 60;  // "1m" until it is actually due
   long hours = minutes / 60;
   long days = hours / 24;
   if (days >= 2) {

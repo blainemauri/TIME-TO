@@ -2,7 +2,11 @@
   "name": "time-to",
   "author": "blainemauri",
   "version": "1.0.0",
-  "keywords": ["pebble-app", "alarm", "reminder"],
+  "keywords": [
+    "pebble-app",
+    "alarm",
+    "reminder"
+  ],
   "private": true,
   "license": "GPL-3.0-or-later",
   "dependencies": {},
@@ -11,16 +15,25 @@
     "uuid": "78ff0b72-3e3c-45d8-bb73-45381a822bd6",
     "sdkVersion": "3",
     "enableMultiJS": true,
-    "targetPlatforms": ["emery"],
+    "targetPlatforms": [
+      "emery"
+    ],
     "watchapp": {
       "watchface": false
     },
-    "capabilities": ["configurable"],
-    "messageKeys": ["TT_OP", "TT_KIND", "TT_TEXT", "TT_GEN"],
+    "capabilities": [
+      "configurable"
+    ],
+    "messageKeys": [
+      "TT_OP",
+      "TT_KIND",
+      "TT_TEXT",
+      "TT_GEN"
+    ],
     "resources": {
       "media": []
     },
-    "configPage": "src/config/config.html",
+    "configPage": "src/generated/config.html",
     "usesPermissions": [
       {
         "name": "Timeline",
@@ -35,38 +48,69 @@
     ],
     "plugin": {
       "description": "Time To alarms: lists the alarms coming up next and lets other apps and the assistant set a new alarm or reminder.",
-      "script": "src/plugin/index.js",
+      "script": "src/generated/plugin.js",
       "sources": [
         {
           "category": "alarms",
-          "items": ["upcoming"],
+          "items": [
+            "upcoming"
+          ],
           "properties": {
-            "name": ["shortText", "longText"],
-            "time": ["timestamp", "shortText", "longText"],
-            "day": ["shortText"],
-            "snoozed": ["boolean"]
+            "name": [
+              "shortText",
+              "longText"
+            ],
+            "time": [
+              "timestamp",
+              "shortText",
+              "longText"
+            ],
+            "day": [
+              "shortText"
+            ],
+            "snoozed": [
+              "boolean"
+            ]
           },
           "supportsMultiple": true,
           "suggestedRefreshIntervalSec": 300
         },
         {
           "category": "alarms",
-          "items": ["all"],
+          "items": [
+            "all"
+          ],
           "properties": {
-            "name": ["shortText", "longText"],
-            "schedule": ["longText"],
-            "on": ["boolean"],
-            "row": ["longText"]
+            "name": [
+              "shortText",
+              "longText"
+            ],
+            "schedule": [
+              "longText"
+            ],
+            "on": [
+              "boolean"
+            ],
+            "row": [
+              "longText"
+            ]
           },
           "supportsMultiple": true,
           "suggestedRefreshIntervalSec": 900
         },
         {
           "category": "reminders",
-          "items": ["configured"],
+          "items": [
+            "configured"
+          ],
           "properties": {
-            "name": ["shortText"],
-            "configured": ["boolean", "shortText"]
+            "name": [
+              "shortText"
+            ],
+            "configured": [
+              "boolean",
+              "shortText"
+            ]
           },
           "supportsMultiple": false,
           "suggestedRefreshIntervalSec": 3600
@@ -79,16 +123,37 @@
           "parameters": {
             "type": "object",
             "properties": {
-              "time": { "type": "string", "description": "Time of day, HH:MM in 24-hour form." },
-              "rule": { "type": "string", "description": "When it repeats. Defaults to the next time that clock time comes round, once." },
-              "message": { "type": "string", "description": "Text shown when the alarm rings." },
-              "snooze_a": { "type": "string", "description": "Snooze length for the top button, e.g. '3m'." },
-              "snooze_b": { "type": "string", "description": "Snooze length for the bottom button, e.g. '30m'." },
-              "row": { "type": "string", "description": "A complete alarm CSV row, instead of the fields above." }
+              "time": {
+                "type": "string",
+                "description": "Time of day, HH:MM in 24-hour form."
+              },
+              "rule": {
+                "type": "string",
+                "description": "When it repeats. Defaults to the next time that clock time comes round, once."
+              },
+              "message": {
+                "type": "string",
+                "description": "Text shown when the alarm rings."
+              },
+              "snooze_a": {
+                "type": "string",
+                "description": "Snooze length for the top button, e.g. '3m'."
+              },
+              "snooze_b": {
+                "type": "string",
+                "description": "Snooze length for the bottom button, e.g. '30m'."
+              },
+              "row": {
+                "type": "string",
+                "description": "A complete alarm CSV row, instead of the fields above."
+              }
             },
             "required": []
           },
-          "targets": ["alarms/upcoming", "alarms/all"]
+          "targets": [
+            "alarms/upcoming",
+            "alarms/all"
+          ]
         },
         {
           "name": "create_reminder",
@@ -96,15 +161,38 @@
           "parameters": {
             "type": "object",
             "properties": {
-              "title": { "type": "string", "minLength": 1, "description": "Reminder title." },
-              "due_iso": { "type": "string", "format": "date-time", "description": "Optional absolute due instant in ISO-8601 format." },
-              "timezone": { "type": "string", "description": "IANA time-zone context for due_iso." },
-              "notify_before_ms": { "type": "integer", "minimum": 0, "description": "Optional lead time in milliseconds." },
-              "instanceId": { "type": "string", "description": "Unused." }
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Reminder title."
+              },
+              "due_iso": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Optional absolute due instant in ISO-8601 format."
+              },
+              "timezone": {
+                "type": "string",
+                "description": "IANA time-zone context for due_iso."
+              },
+              "notify_before_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Optional lead time in milliseconds."
+              },
+              "instanceId": {
+                "type": "string",
+                "description": "Unused."
+              }
             },
-            "required": ["title"]
+            "required": [
+              "title"
+            ]
           },
-          "targets": ["alarms/upcoming", "alarms/all"]
+          "targets": [
+            "alarms/upcoming",
+            "alarms/all"
+          ]
         }
       ]
     }

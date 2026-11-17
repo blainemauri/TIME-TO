@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Time To</title>
+<style>
+:root {
+  --bg: #f6f5f2; --card: #fff; --ink: #1d1c1a; --dim: #6c6a64; --line: #e3e0d9;
+  --accent: #ff6a1a; --accent-ink: #fff; --danger: #c62828; --ok: #2e7d32; --field: #fbfaf8;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #141312; --card: #1f1e1c; --ink: #f1efe9; --dim: #a19e96; --line: #33312d;
+    --field: #282623; --danger: #ff6b6b; --ok: #7bd389; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { padding: 0 0 80px; }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 14px 16px 0;
+  border-bottom: 1px solid var(--line); }
+h1 { font-size: 22px; margin: 0; letter-spacing: -0.02em; }
+h1 b { color: var(--accent); }
+#status { font-size: 13px; color: var(--dim); margin: 2px 0 8px; min-height: 18px; }
+nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+nav button { flex: none; border: 0; background: none; color: var(--dim); font: inherit; font-weight: 600;
+  padding: 8px 10px 10px; border-bottom: 3px solid transparent; cursor: pointer; }
+nav button.on { color: var(--ink); border-bottom-color: var(--accent); }
+main { padding: 12px 16px; max-width: 720px; margin: 0 auto; }
+section[hidden] { display: none; }
+h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 22px 0 8px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 8px 0; }
+.row { display: flex; align-items: center; gap: 10px; }
+.grow { flex: 1; min-width: 0; }
+.alarm { cursor: pointer; border-left: 6px solid var(--tag, transparent); }
+.alarm.off { opacity: .55; }
+.alarm .time { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.alarm .msg { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { color: var(--dim); font-size: 14px; }
+.badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 99px;
+  background: var(--line); color: var(--ink); margin-left: 4px; vertical-align: 1px; }
+.badge.hot { background: var(--accent); color: var(--accent-ink); }
+button, .btn { font: inherit; font-weight: 600; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); padding: 9px 14px; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.danger { color: var(--danger); }
+button.small { padding: 5px 10px; font-size: 14px; }
+button:disabled { opacity: .5; cursor: default; }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+label.field { display: block; margin: 12px 0 0; }
+label.field > span { display: block; font-size: 13px; font-weight: 600; color: var(--dim); margin-bottom: 4px; }
+input, select, textarea { font: inherit; color: var(--ink); background: var(--field); border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 10px; width: 100%; }
+input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
+input[type=range] { padding: 0; accent-color: var(--accent); }
+textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; min-height: 140px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.days { display: flex; gap: 6px; flex-wrap: wrap; }
+.days label { flex: 1; min-width: 40px; text-align: center; border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 0; cursor: pointer; font-weight: 700; user-select: none; }
+.days input { display: none; }
+.days label:has(input:checked) { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.switch { position: relative; display: inline-block; width: 50px; height: 30px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch span { position: absolute; inset: 0; border-radius: 99px; background: var(--line); transition: .15s; }
+.switch span::after { content: ""; position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%;
+  background: #fff; transition: .15s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatches button { width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 2px solid var(--line); }
+.swatches button.on { outline: 3px solid var(--ink); outline-offset: 2px; }
+.code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; word-break: break-all;
+  background: var(--field); border: 1px dashed var(--line); border-radius: 8px; padding: 8px; color: var(--dim); }
+.bars { display: flex; height: 26px; border-radius: 6px; overflow: hidden; background: var(--field); border: 1px solid var(--line); }
+.bars i { display: block; height: 100%; }
+.bars i.on { background: var(--accent); }
+.pad { height: 150px; border-radius: var(--radius); border: 2px dashed var(--accent); display: grid; place-items: center;
+  font-weight: 700; color: var(--accent); user-select: none; -webkit-user-select: none; touch-action: none; cursor: pointer; }
+.pad.down { background: var(--accent); color: var(--accent-ink); }
+.keys { position: relative; height: 130px; display: flex; user-select: none; -webkit-user-select: none; touch-action: none; }
+.keys .w { flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 0 0 6px 6px; color: #888;
+  display: flex; align-items: flex-end; justify-content: center; font-size: 11px; padding-bottom: 4px; }
+.keys .b { position: absolute; top: 0; width: 6%; height: 60%; background: #222; border-radius: 0 0 4px 4px; z-index: 2; }
+.keys .down { background: var(--accent) !important; }
+.empty { text-align: center; color: var(--dim); padding: 30px 10px; }
+.err { color: var(--danger); font-size: 14px; }
+.okmsg { color: var(--ok); font-size: 14px; }
+table.ref { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+table.ref td { border-top: 1px solid var(--line); padding: 6px 4px; vertical-align: top; }
+table.ref td:first-child { font-family: ui-monospace, Menlo, monospace; font-weight: 700; white-space: nowrap; }
+dialog { border: 0; border-radius: 18px; padding: 0; width: min(560px, 100vw - 16px); max-height: 92vh;
+  background: var(--bg); color: var(--ink); }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+dialog .head { position: sticky; top: 0; background: var(--bg); padding: 14px 16px 10px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px; z-index: 2; }
+dialog .body { padding: 4px 16px 18px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
+  padding: 10px 16px; border-radius: 12px; font-weight: 600; z-index: 99; max-width: 90vw; }
+details summary { cursor: pointer; font-weight: 600; color: var(--dim); margin-top: 14px; }
+</style>
+<!-- @TT_MODULES@ -->
+</head>
+<body>
+<header>
+  <h1>Time <b>To</b></h1>
+  <div id="status">Connecting...</div>
+  <nav id="tabs">
+    <button data-tab="alarms" class="on">Alarms</button>
+    <button data-tab="archive">Archive</button>
+    <button data-tab="buzz">Buzz</button>
+    <button data-tab="sounds">Sounds</button>
+    <button data-tab="settings">Settings</button>
+    <button data-tab="csv">CSV</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ======================================================== ALARMS -->
+  <section id="tab-alarms">
+    <div class="card">
+      <label class="field" style="margin-top:0"><span>Quick add</span>
+        <div class="row">
+          <input id="quick" class="grow" placeholder="7:30 weekdays Wake up" autocomplete="off">
+          <button class="primary" id="quick-add">Add</button>
+        </div>
+      </label>
+      <div class="sub" id="quick-hint" style="margin-top:6px">Time, then when (today, tomorrow, friday, in 3 days, weekdays, daily, monthly=15, nth=2tu ...), then the message.</div>
+    </div>
+    <div class="buttons"><button id="new-alarm">+ New alarm</button></div>
+    <div id="alarm-list"></div>
+  </section>
+
+  <!-- ======================================================== ARCHIVE -->
+  <section id="tab-archive" hidden>
+    <p class="sub">Alarms put away for later. Nothing here rings. Restore one as it was, or use it as a template for a new alarm.</p>
+    <div id="archive-list"></div>
+  </section>
+
+  <!-- ======================================================== BUZZ -->
+  <section id="tab-buzz" hidden>
+    <h2>Record a buzz</h2>
+    <div class="card">
+      <div class="pad" id="buzz-pad">Hold to buzz, let go to pause</div>
+      <div class="bars" id="buzz-bars" style="margin-top:10px"></div>
+      <label class="field"><span>On / off times in milliseconds (on, off, on, ...)</span>
+        <input id="buzz-segs" placeholder="200 100 200 600 400" inputmode="numeric"></label>
+      <label class="field"><span>Name</span><input id="buzz-name" maxlength="16" placeholder="My buzz"></label>
+      <div class="buttons">
+        <button id="buzz-try">Try on watch</button>
+        <button id="buzz-clear">Clear</button>
+        <button class="primary" id="buzz-save">Save pattern</button>
+      </div>
+      <div class="sub" style="margin-top:8px">Recording on the watch works too: Buzz &amp; sound, Record new.</div>
+    </div>
+    <h2>Patterns</h2>
+    <div id="pattern-list"></div>
+  </section>
+
+  <!-- ======================================================== SOUNDS -->
+  <section id="tab-sounds" hidden>
+    <p class="sub">Tunes play through the speaker on watches that have one (Pebble Time 2 does), alongside the buzz.</p>
+    <h2>Make a tune</h2>
+    <div class="card">
+      <div class="keys" id="keys"></div>
+      <label class="field"><span>Notes as MIDI:milliseconds (0 is a rest; 60 is middle C)</span>
+        <input id="tune-notes" placeholder="72:150 0:50 76:300"></label>
+      <label class="field"><span>Name</span><input id="tune-name" maxlength="16" placeholder="My tune"></label>
+      <div class="buttons">
+        <button id="tune-play">Play here</button>
+        <button id="tune-try">Try on watch</button>
+        <button id="tune-clear">Clear</button>
+        <button class="primary" id="tune-save">Save tune</button>
+      </div>
+    </div>
+    <h2>Tunes</h2>
+    <div id="tune-list"></div>
+  </section>
+
+  <!-- ======================================================== SETTINGS -->
+  <section id="tab-settings" hidden>
+    <div class="card" id="settings-form">
+      <div class="two">
+        <label class="field"><span>Snooze, top button</span><input id="s-snooze_a" placeholder="3m"></label>
+        <label class="field"><span>Snooze, bottom button</span><input id="s-snooze_b" placeholder="30m"></label>
+      </div>
+      <label class="field"><span>Default buzz</span><select id="s-vibe"></select></label>
+      <label class="field"><span>Default strength: <b id="s-strength-v"></b></span><input type="range" id="s-strength" min="10" max="100" step="5"></label>
+      <div class="two">
+        <label class="field"><span>Default sound</span><select id="s-sound"></select></label>
+        <label class="field"><span>Volume: <b id="s-volume-v"></b></span><input type="range" id="s-volume" min="0" max="100" step="5"></label>
+      </div>
+      <div class="two">
+        <label class="field"><span>Ring for (seconds), then snooze</span><input id="s-ring" type="number" min="5" max="3600"></label>
+        <label class="field"><span>Give up after (0 = never)</span><input id="s-auto" type="number" min="0" max="99"></label>
+      </div>
+      <label class="field"><span>When a one-off is finished</span>
+        <select id="s-done"><option value="archive">Move it to the archive</option><option value="keep">Switch it off</option><option value="delete">Delete it</option></select></label>
+      <label class="row" style="margin-top:14px"><input type="checkbox" id="s-light"> Light up the screen while ringing</label>
+      <label class="row" style="margin-top:10px"><input type="checkbox" id="s-timeline"> Show upcoming alarms in the timeline</label>
+      <div class="buttons"><button class="primary" id="settings-save">Save settings</button></div>
+    </div>
+  </section>
+
+  <!-- ======================================================== CSV -->
+  <section id="tab-csv" hidden>
+    <h2>Export</h2>
+    <div class="card">
+      <div class="row"><select id="export-what" class="grow">
+        <option value="alarms">Alarms</option><option value="archive">Archive</option>
+        <option value="patterns">Buzz patterns</option><option value="tunes">Tunes</option><option value="settings">Settings</option>
+      </select></div>
+      <textarea id="export-text" readonly style="margin-top:10px"></textarea>
+      <div class="buttons"><button id="export-copy">Copy</button><button id="export-download">Download</button></div>
+    </div>
+    <h2>Import</h2>
+    <div class="card">
+      <label class="field" style="margin-top:0"><span>Paste rows (a header line is fine). Same id replaces, empty id adds.</span>
+        <textarea id="import-text" placeholder="id,on,time,rule,msg,snooze_a,snooze_b&#10;,1,07:30,weekdays,Wake up,5,45"></textarea></label>
+      <div class="row" style="margin-top:10px">
+        <select id="import-into" class="grow"><option value="alarms">Into alarms</option><option value="archive">Into the archive</option>
+          <option value="patterns">As buzz patterns</option><option value="tunes">As tunes</option></select>
+        <button id="import-check">Check</button>
+        <button class="primary" id="import-go" disabled>Import</button>
+      </div>
+      <div id="import-result" style="margin-top:10px"></div>
+    </div>
+    <h2>Alarm row format</h2>
+    <div class="card">
+      <p class="sub" style="margin-top:0">One alarm per line. Only <b>time</b> is required; leave anything else empty for its default.</p>
+      <div class="code" id="header-line"></div>
+      <table class="ref" id="ref" style="margin-top:10px"></table>
+    </div>
+  </section>
+</main>
+
+<!-- ======================================================== EDITOR -->
+<dialog id="editor">
+  <div class="head"><b class="grow" id="ed-title">Alarm</b><button class="small" id="ed-close">Cancel</button><button class="small primary" id="ed-save">Save</button></div>
+  <div class="body">
+    <div class="two">
+      <label class="field"><span>Time</span><input type="time" id="ed-time" required></label>
+      <label class="field"><span>Switched on</span><label class="switch"><input type="checkbox" id="ed-on"><span></span></label></label>
+    </div>
+    <label class="field"><span>Message</span><input id="ed-msg" maxlength="80" placeholder="What is it time to do?"></label>
+    <label class="field"><span>When</span>
+      <select id="ed-kind">
+        <option value="once">Once</option><option value="daily">Every day / every N days</option>
+        <option value="weekly">Days of the week</option><option value="monthly">Day of the month</option>
+        <option value="nth">Nth weekday of the month</option><option value="yearly">Once a year</option>
+        <option value="yday">Day of the year</option>
+      </select></label>
+    <div id="ed-rule"></div>
+    <div class="two">
+      <label class="field"><span>Snooze, top button</span><input id="ed-snooze_a" placeholder="default"></label>
+      <label class="field"><span>Snooze, bottom button</span><input id="ed-snooze_b" placeholder="default"></label>
+    </div>
+    <div class="two">
+      <label class="field"><span>Buzz</span><select id="ed-vibe"></select></label>
+      <label class="field"><span>Sound</span><select id="ed-sound"></select></label>
+    </div>
+    <label class="field"><span>Strength: <b id="ed-strength-v"></b></span><input type="range" id="ed-strength" min="0" max="100" step="5"></label>
+    <label class="row" style="margin-top:10px"><input type="checkbox" id="ed-ramp"> Build up: start soft and get stronger</label>
+    <details>
+      <summary>More: repeat within the day, end date, colour, when finished</summary>
+      <div class="two">
+        <label class="field"><span>Then again every</span><input id="ed-every" placeholder="off (e.g. 30m, 2h)"></label>
+        <label class="field"><span>Until</span><input type="time" id="ed-last"></label>
+      </div>
+      <label class="field" id="ed-until-wrap"><span>Last day it can ring</span><input type="date" id="ed-until"></label>
+      <label class="field"><span>Colour</span><div class="swatches" id="ed-colors"></div></label>
+      <label class="field"><span>When it is finished</span>
+        <select id="ed-done"><option value="">Default</option><option value="keep">Switch off</option><option value="archive">Move to archive</option><option value="delete">Delete</option></select></label>
+    </details>
+    <label class="field"><span>As a CSV row</span><div class="code" id="ed-row"></div></label>
+    <div id="ed-next" class="sub" style="margin-top:8px"></div>
+    <div class="buttons" id="ed-more">
+      <button id="ed-try">Try on watch</button>
+      <button id="ed-dup">Duplicate</button>
+      <button id="ed-archive">Archive</button>
+      <button class="danger" id="ed-delete">Delete</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+'use strict';
+var tt = require('ttrows');
+var $ = function (id) { return document.getElementById(id); };
+var ID_EPOCH = 1577836800;
+var COLORS = ['', 'ff0000', 'ff5500', 'ffff00', '00aa00', '55ffaa', '00aaaa', '0055ff', 'aa00ff', 'ff55aa', 'aaaaaa'];
+var snap = null;
+var pending = 0;
+var watchSeen = false;
+var editing = null;  // { alarm, isNew }
+
+// ------------------------------------------------------------- talking to PebbleKit JS
+
+var bridge = null;
+
+/** A stand-in for the phone when the page is opened in an ordinary browser. */
+function demoBridge() {
+  var data = {
+    alarms: [
+      '1001,1,07:30,"weekly=mo.tu.we.th.fr",Wake up,5,45,Heartbeat,80,,r,,,,ff5500',
+      '1002,1,09:00,"weekly=mo.tu.we.th.fr",Drink water,15,2h,,,,,120,17:00,,0055ff',
+      '1003,1,18:30,once=' + tt.formatDate(tt.civilFromDays(tt.today() + 2)) + ',Call the dentist back,10,117h,,,,a,,,,',
+      '1004,0,20:00,nth=-1fr,Pay rent,,,,,,,,,,',
+    ],
+    archive: ['900,0,10:00,once=2026-10-01,Renew passport,,,,,,,,,,'],
+    patterns: ['Pulse,400 300 400 300 400', 'Double,150 120 150', 'Heartbeat,100 100 250 700 100 100 250', 'Long,1500'],
+    tunes: ['Beep,84:120 0:80 84:120 0:80 84:120', 'Chime,76:180 72:180 67:400'],
+    settings: 'snooze_a=3;snooze_b=30;vibe=Pulse;strength=100;sound=none;volume=70;ring=60;auto=5;done=archive;timeline=1;light=1',
+    state: {}, agenda: [], updated: Date.now(),
+  };
+  var key = function (kind, row) { return tt.parseCsvLine(row)[0]; };
+  return {
+    demo: true,
+    send: function (m) {
+      var rows = m.rows || [];
+      if (m.type === 'put' && m.kind === 'settings') data.settings = rows[0];
+      else if (m.type === 'put') rows.forEach(function (row) {
+        var k = key(m.kind, row);
+        var i = data[m.kind].findIndex(function (r) { return key(m.kind, r) === k; });
+        if (i >= 0) data[m.kind][i] = row; else data[m.kind].push(row);
+      });
+      else if (m.type === 'del') data[m.kind] = data[m.kind].filter(function (r) { return rows.indexOf(key(m.kind, r)) < 0; });
+      else if (m.type === 'archive' || m.type === 'restore') {
+        var from = m.type === 'archive' ? 'alarms' : 'archive';
+        var to = m.type === 'archive' ? 'archive' : 'alarms';
+        data[from] = data[from].filter(function (r) {
+          if (rows.indexOf(key(from, r)) < 0) return true;
+          data[to].push(r);
+          return false;
+        });
+      }
+      return Promise.resolve({ snapshot: JSON.parse(JSON.stringify(data)), pending: 0, watchSeen: false });
+    },
+  };
+}
+
+function connect() {
+  if (window.Pebble && typeof Pebble.sendMessage === 'function') {
+    bridge = { send: function (m) { return Pebble.sendMessage('pkjs', m); } };
+    var started = false;
+    var start = function () {
+      if (started) return;
+      started = true;
+      request({ type: 'hello' });
+      setInterval(function () { request({ type: 'snapshot' }); }, 4000);
+    };
+    Pebble.addEventListener('ready', function (e) { if (!e || e.target === 'pkjs') start(); });
+    Pebble.addEventListener('message', function () { request({ type: 'snapshot' }); });
+    if (Pebble.readyTargets && Pebble.readyTargets().indexOf('pkjs') >= 0) start();
+    setTimeout(start, 2500);  // in case "ready" came before we listened
+  } else {
+    bridge = demoBridge();
+    request({ type: 'snapshot' });
+  }
+}
+
+function request(m) {
+  return bridge.send(m).then(function (reply) {
+    if (reply && reply.error) toast(reply.error);
+    if (reply && reply.snapshot) {
+      snap = reply.snapshot;
+      pending = reply.pending || 0;
+      watchSeen = !!reply.watchSeen;
+      render();
+    }
+    return reply;
+  }).catch(function (e) { toast('Could not reach the phone: ' + e); });
+}
+
+function send(type, kind, rows) {
+  return request({ type: type, kind: kind, rows: rows });
+}
+
+// ------------------------------------------------------------- helpers
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+}
+
+var toastTimer = null;
+function toast(msg) {
+  var el = document.querySelector('.toast') || document.body.appendChild(document.createElement('div'));
+  el.className = 'toast';
+  el.textContent = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.remove(); }, 2600);
+}
+
+function settings() {
+  return tt.parseSettings(snap ? snap.settings : '');
+}
+
+function patterns() {
+  return (snap ? snap.patterns : []).map(tt.parsePattern).filter(Boolean);
+}
+
+function tunes() {
+  return (snap ? snap.tunes : []).map(tt.parseTune).filter(Boolean);
+}
+
+function alarms(which) {
+  return (snap ? snap[which || 'alarms'] : []).map(function (row) {
+    var a = tt.tryParseAlarm(row);
+    if (a) a.row = row;
+    return a;
+  }).filter(Boolean);
+}
+
+function freshId() {
+  var taken = {};
+  alarms('alarms').concat(alarms('archive')).forEach(function (a) { taken[a.id] = true; });
+  var id = Math.floor(Date.now() / 1000) - ID_EPOCH;
+  while (taken[id]) id++;
+  return id;
+}
+
+function relative(sec) {
+  var d = sec - Date.now() / 1000;
+  if (d < 60) return 'now';
+  var m = Math.floor(d / 60), h = Math.floor(m / 60), days = Math.floor(h / 24);
+  if (days >= 2) return 'in ' + days + 'd';
+  if (h >= 1) return 'in ' + h + 'h' + (m % 60 && h < 10 ? ' ' + (m % 60) + 'm' : '');
+  return 'in ' + m + 'm';
+}
+
+function whenText(sec) {
+  var here = tt.epochToLocal(sec);
+  var t = tt.today();
+  var day = here.day === t ? 'Today' : here.day === t + 1 ? 'Tomorrow' : (function () {
+    var c = tt.civilFromDays(here.day);
+    return tt.WDAY_ABBR[tt.dow(here.day)] + ' ' + c.d + ' ' + tt.MONTH_ABBR[c.m - 1];
+  })();
+  return day + ' ' + tt.formatClock(here.minute);
+}
+
+/** When the alarm rings next: what the watch says, else worked out here. */
+function nextRing(a) {
+  var st = snap && snap.state[a.id];
+  if (st && st.next) return { when: st.next, snoozed: !!st.snooze, skipping: !!st.skip };
+  if (!a.on) return null;
+  var t = tt.nextOccurrence(a, Math.floor(Date.now() / 1000));
+  return t ? { when: t } : null;
+}
+
+function bars(segs) {
+  var total = segs.reduce(function (x, y) { return x + y; }, 0) || 1;
+  return segs.map(function (ms, i) {
+    return '<i class="' + (i % 2 ? '' : 'on') + '" style="width:' + (100 * ms / total) + '%"></i>';
+  }).join('');
+}
+
+// ------------------------------------------------------------- render
+
+function renderStatus() {
+  var parts = [];
+  if (bridge && bridge.demo) parts.push('Demo: not connected to a watch');
+  else if (snap && snap.updated) parts.push('Watch synced ' + (function () {
+    var s = Math.round((Date.now() - snap.updated) / 1000);
+    return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + 'm ago' : Math.round(s / 3600) + 'h ago';
+  })());
+  else parts.push('Waiting for the watch');
+  if (pending) parts.push(pending + ' change' + (pending > 1 ? 's' : '') + ' waiting for the watch app');
+  $('status').textContent = parts.join(' · ');
+}
+
+function alarmCard(a, archived) {
+  var next = archived ? null : nextRing(a);
+  var badges = '';
+  if (next && next.snoozed) badges += '<span class="badge hot">snoozed</span>';
+  if (next && next.skipping) badges += '<span class="badge">skipping</span>';
+  var st = snap && snap.state[a.id];
+  if (st && st.missed) badges += '<span class="badge hot">missed</span>';
+  var line = esc(tt.describeRule(a.rule)) + (a.every ? ', every ' + tt.formatDuration(a.every) : '');
+  var right = archived
+    ? '<button class="small" data-act="restore">Restore</button><button class="small" data-act="template">Template</button><button class="small danger" data-act="forget">Delete</button>'
+    : '<label class="switch" onclick="event.stopPropagation()"><input type="checkbox" data-act="toggle"' + (a.on ? ' checked' : '') + '><span></span></label>';
+  return '<div class="card alarm' + (a.on || archived ? '' : ' off') + '" data-id="' + a.id + '" style="--tag:' + (a.color ? '#' + a.color : 'transparent') + '">' +
+    '<div class="row"><div class="grow">' +
+    '<div class="row" style="gap:8px"><span class="time">' + tt.formatClock(a.minute) + '</span>' +
+    (next ? '<span class="sub">' + esc(relative(next.when)) + '</span>' : '') + badges + '</div>' +
+    '<div class="msg">' + esc(a.msg || 'Alarm') + '</div>' +
+    '<div class="sub">' + line + '</div></div>' +
+    '<div class="' + (archived ? 'buttons' : '') + '" style="margin:0">' + right + '</div></div></div>';
+}
+
+function renderAlarms() {
+  var list = alarms('alarms');
+  list.sort(function (x, y) {
+    var nx = nextRing(x), ny = nextRing(y);
+    if (!!nx !== !!ny) return nx ? -1 : 1;
+    if (nx && ny) return nx.when - ny.when;
+    return x.minute - y.minute;
+  });
+  $('alarm-list').innerHTML = list.length ? list.map(function (a) { return alarmCard(a, false); }).join('')
+    : '<div class="empty">No alarms yet. Add one above.</div>';
+  var arch = alarms('archive');
+  $('archive-list').innerHTML = arch.length ? arch.map(function (a) { return alarmCard(a, true); }).join('')
+    : '<div class="empty">Nothing archived. Finished one-offs land here.</div>';
+}
+
+function renderPatterns() {
+  var def = settings().vibe;
+  $('pattern-list').innerHTML = patterns().map(function (p) {
+    var total = p.segs.reduce(function (x, y) { return x + y; }, 0);
+    return '<div class="card" data-name="' + esc(p.name) + '"><div class="row"><b class="grow">' + esc(p.name) +
+      (p.name === def ? ' <span class="badge hot">default</span>' : '') + '</b><span class="sub">' + (total / 1000).toFixed(1) + 's</span></div>' +
+      '<div class="bars" style="margin-top:8px">' + bars(p.segs) + '</div>' +
+      '<div class="buttons"><button class="small" data-act="try">Try on watch</button><button class="small" data-act="edit">Edit</button>' +
+      '<button class="small" data-act="default">Make default</button><button class="small danger" data-act="delete">Delete</button></div></div>';
+  }).join('') || '<div class="empty">No patterns.</div>';
+}
+
+function renderTunes() {
+  var def = settings().sound;
+  $('tune-list').innerHTML = tunes().map(function (t) {
+    return '<div class="card" data-name="' + esc(t.name) + '"><div class="row"><b class="grow">' + esc(t.name) +
+      (t.name === def ? ' <span class="badge hot">default</span>' : '') + '</b><span class="sub">' + t.notes.length + ' notes</span></div>' +
+      '<div class="buttons"><button class="small" data-act="play">Play here</button><button class="small" data-act="try">Try on watch</button>' +
+      '<button class="small" data-act="edit">Edit</button><button class="small" data-act="default">Make default</button>' +
+      '<button class="small danger" data-act="delete">Delete</button></div></div>';
+  }).join('') || '<div class="empty">No tunes.</div>';
+}
+
+function fillSelect(el, options, value) {
+  el.innerHTML = options.map(function (o) {
+    return '<option value="' + esc(o[0]) + '"' + (o[0] === value ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+  }).join('');
+}
+
+var settingsDirty = false;
+function renderSettings() {
+  if (settingsDirty) return;  // do not overwrite what someone is typing
+  var s = settings();
+  $('s-snooze_a').value = s.snooze_a ? tt.formatDuration(+s.snooze_a) : '';
+  $('s-snooze_b').value = s.snooze_b ? tt.formatDuration(+s.snooze_b) : '';
+  fillSelect($('s-vibe'), patterns().map(function (p) { return [p.name, p.name]; }), s.vibe);
+  $('s-strength').value = s.strength || 100;
+  $('s-strength-v').textContent = $('s-strength').value + '%';
+  fillSelect($('s-sound'), [['none', 'Silent']].concat(tunes().map(function (t) { return [t.name, t.name]; })), s.sound || 'none');
+  $('s-volume').value = s.volume || 0;
+  $('s-volume-v').textContent = $('s-volume').value + '%';
+  $('s-ring').value = s.ring || 60;
+  $('s-auto').value = s.auto === undefined ? 5 : s.auto;
+  $('s-done').value = s.done || 'archive';
+  $('s-light').checked = s.light !== '0';
+  $('s-timeline').checked = s.timeline !== '0';
+}
+
+function renderExport() {
+  if (!snap) return;
+  var what = $('export-what').value;
+  var text;
+  if (what === 'alarms' || what === 'archive') text = tt.HEADER + '\n' + snap[what].join('\n');
+  else if (what === 'patterns') text = 'name,segments_ms\n' + snap.patterns.join('\n');
+  else if (what === 'tunes') text = 'name,notes\n' + snap.tunes.join('\n');
+  else text = snap.settings;
+  $('export-text').value = text + '\n';
+}
+
+function render() {
+  renderStatus();
+  renderAlarms();
+  renderPatterns();
+  renderTunes();
+  renderSettings();
+  renderExport();
+  if (editing && $('editor').open) refreshEditorChoices();
+}
+
+// ------------------------------------------------------------- tabs
+
+$('tabs').addEventListener('click', function (e) {
+  var tab = e.target.getAttribute('data-tab');
+  if (!tab) return;
+  Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (b) { b.classList.toggle('on', b === e.target); });
+  Array.prototype.forEach.call(document.querySelectorAll('main > section'), function (s) { s.hidden = s.id !== 'tab-' + tab; });
+});
+
+// ------------------------------------------------------------- quick add
+
+/** "7:30 weekdays Wake up" -> an alarm. Tries the longest rule it can find after the time. */
+function quickParse(text) {
+  var words = String(text).trim().split(/\s+/);
+  if (!words[0]) throw new Error('Start with a time, like 7:30');
+  var minute = tt.parseClock(words[0]);
+  var used = 1;
+  if (minute === null && words[1] && /^[ap]\.?m\.?$/i.test(words[1])) {
+    minute = tt.parseClock(words[0] + words[1]);
+    used = 2;
+  }
+  if (minute === null) throw new Error('"' + words[0] + '" is not a time');
+  var a = tt.newAlarm();
+  a.minute = minute;
+  var rule = null;
+  for (var n = Math.min(3, words.length - used); n >= 1 && !rule; n--) {
+    var candidate = words.slice(used, used + n).join(' ');
+    rule = tt.parseRule(candidate);
+    if (rule) used += n;
+  }
+  if (!rule) {
+    var here = tt.epochToLocal(Math.floor(Date.now() / 1000));
+    rule = tt.newRule('once');
+    rule.date = tt.civilFromDays(minute > here.minute ? here.day : here.day + 1);
+  }
+  a.rule = rule;
+  a.msg = words.slice(used).join(' ').slice(0, tt.MSG_MAX);
+  return a;
+}
+
+function quickPreview() {
+  var text = $('quick').value;
+  if (!text.trim()) {
+    $('quick-hint').textContent = 'Time, then when (today, tomorrow, friday, in 3 days, weekdays, daily, monthly=15, nth=2tu ...), then the message.';
+    $('quick-hint').className = 'sub';
+    return null;
+  }
+  try {
+    var a = quickParse(text);
+    var next = tt.nextOccurrence(a, Math.floor(Date.now() / 1000));
+    $('quick-hint').textContent = tt.describeAlarm(a) + (next ? ' → ' + whenText(next) : ' (never rings)');
+    $('quick-hint').className = 'sub';
+    return a;
+  } catch (e) {
+    $('quick-hint').textContent = e.message;
+    $('quick-hint').className = 'err';
+    return null;
+  }
+}
+
+$('quick').addEventListener('input', quickPreview);
+function quickAdd() {
+  var a = quickPreview();
+  if (!a) return;
+  a.id = freshId();
+  send('put', 'alarms', [tt.formatAlarm(a)]).then(function () {
+    toast('Added: ' + tt.describeAlarm(a));
+    $('quick').value = '';
+    quickPreview();
+  });
+}
+$('quick-add').addEventListener('click', quickAdd);
+$('quick').addEventListener('keydown', function (e) { if (e.key === 'Enter') quickAdd(); });
+
+// ------------------------------------------------------------- alarm list actions
+
+$('alarm-list').addEventListener('click', function (e) {
+  var card = e.target.closest('.alarm');
+  if (!card) return;
+  var a = alarms('alarms').filter(function (x) { return String(x.id) === card.getAttribute('data-id'); })[0];
+  if (!a) return;
+  if (e.target.getAttribute('data-act') === 'toggle') return;
+  openEditor(a, false);
+});
+
+$('alarm-list').addEventListener('change', function (e) {
+  if (e.target.getAttribute('data-act') !== 'toggle') return;
+  var card = e.target.closest('.alarm');
+  var a = alarms('alarms').filter(function (x) { return String(x.id) === card.getAttribute('data-id'); })[0];
+  if (!a) return;
+  a.on = e.target.checked;
+  send('put', 'alarms', [tt.formatAlarm(a)]);
+});
+
+$('archive-list').addEventListener('click', function (e) {
+  var act = e.target.getAttribute('data-act');
+  var card = e.target.closest('.alarm');
+  if (!card) return;
+  var id = card.getAttribute('data-id');
+  var a = alarms('archive').filter(function (x) { return String(x.id) === id; })[0];
+  if (!a) return;
+  if (act === 'restore') {
+    send('restore', 'alarms', [id]).then(function () { toast('Restored. It is back in Alarms.'); });
+  } else if (act === 'template') {
+    var copy = tt.parseAlarm(a.row);
+    copy.id = 0;
+    copy.on = true;
+    if (copy.rule.kind === 'once') copy.rule.date = tt.civilFromDays(tt.today() + 1);
+    copy.until = null;
+    openEditor(copy, true);
+  } else if (act === 'forget') {
+    if (confirm('Delete "' + (a.msg || 'Alarm') + '" for good?')) send('del', 'archive', [id]);
+  } else {
+    openEditor(a, false, true);
+  }
+});
+
+$('new-alarm').addEventListener('click', function () {
+  var a = tt.newAlarm();
+  var here = tt.epochToLocal(Math.floor(Date.now() / 1000));
+  a.minute = (Math.ceil((here.minute + 60) / 5) * 5) % 1440;
+  a.rule = tt.newRule('once');
+  a.rule.date = tt.civilFromDays(a.minute > here.minute ? here.day : here.day + 1);
+  openEditor(a, true);
+});
+
+// ------------------------------------------------------------- editor
+
+function minuteToInput(m) { return tt.formatClock(m); }
+function inputToMinute(v) { return v ? tt.parseClock(v) : null; }
+function dateToInput(d) { return d ? tt.formatDate(d) : ''; }
+
+function ruleFields(r) {
+  var startField = '<label class="field"><span>Starting (optional)</span><input type="date" id="r-start" value="' + dateToInput(r.date) + '"></label>';
+  var every = function (unit) {
+    return '<label class="field"><span>Every how many ' + unit + '</span><input type="number" min="1" max="999" id="r-interval" value="' + (r.interval || 1) + '"></label>';
+  };
+  switch (r.kind) {
+    case 'once': {
+      var delta = r.date ? tt.dateToDays(r.date) - tt.today() : 0;
+      return '<div class="two"><label class="field"><span>Date</span><input type="date" id="r-date" value="' + dateToInput(r.date) + '"></label>' +
+        '<label class="field"><span>Or in this many days</span><input type="number" min="0" max="3650" id="r-in" value="' + Math.max(0, delta) + '"></label></div>';
+    }
+    case 'daily':
+      return '<div class="two">' + every('days') + startField + '</div>';
+    case 'weekly':
+      return '<label class="field"><span>Days</span><div class="days">' + tt.WDAY_ABBR.map(function (d, i) {
+        return '<label><input type="checkbox" data-day="' + i + '"' + (r.dow & (1 << i) ? ' checked' : '') + '>' + d.slice(0, 2) + '</label>';
+      }).join('') + '</div></label><div class="two">' + every('weeks') + startField + '</div>';
+    case 'monthly':
+      return '<div class="two"><label class="field"><span>Day of the month</span><input type="number" min="1" max="31" id="r-mday" value="' + Math.abs(r.mday) + '"></label>' +
+        '<label class="field"><span>Counting</span><select id="r-fromend"><option value="0">from the 1st</option><option value="1"' + (r.mday < 0 ? ' selected' : '') + '>back from the last day</option></select></label></div>' +
+        '<div class="two">' + every('months') + startField + '</div>';
+    case 'nth':
+      return '<div class="two"><label class="field"><span>Which</span><select id="r-nth">' +
+        [[1, '1st'], [2, '2nd'], [3, '3rd'], [4, '4th'], [5, '5th'], [-1, 'Last'], [-2, '2nd to last']].map(function (o) {
+          return '<option value="' + o[0] + '"' + (o[0] === r.nth ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join('') + '</select></label><label class="field"><span>Weekday</span><select id="r-wday">' +
+        tt.WDAY_NAME.map(function (d, i) { return '<option value="' + i + '"' + (i === r.wday ? ' selected' : '') + '>' + d + '</option>'; }).join('') +
+        '</select></label></div><div class="two">' + every('months') + startField + '</div>';
+    case 'yearly':
+      return '<div class="two"><label class="field"><span>Month</span><select id="r-month">' +
+        tt.MONTH_ABBR.map(function (m, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === r.month ? ' selected' : '') + '>' + m + '</option>'; }).join('') +
+        '</select></label><label class="field"><span>Day</span><input type="number" min="1" max="31" id="r-mday" value="' + r.mday + '"></label></div>' +
+        '<div class="two">' + every('years') + startField + '</div>';
+    case 'yday':
+      return '<div class="two"><label class="field"><span>Day of the year (1-366)</span><input type="number" min="1" max="366" id="r-yday" value="' + r.yday + '"></label>' +
+        every('years') + '</div>' + startField;
+    default:
+      return '';
+  }
+}
+
+function num(id, fallback) {
+  var el = $(id);
+  var v = el ? parseInt(el.value, 10) : NaN;
+  return isNaN(v) ? fallback : v;
+}
+
+/** Read the editor's fields into editing.alarm. Returns an error message or ''. */
+function readEditor(source) {
+  var a = editing.alarm;
+  var minute = inputToMinute($('ed-time').value);
+  if (minute === null) return 'Pick a time';
+  a.minute = minute;
+  a.on = $('ed-on').checked;
+  a.msg = $('ed-msg').value.slice(0, tt.MSG_MAX);
+  var r = a.rule;
+  var kind = $('ed-kind').value;
+  if (kind !== r.kind) {
+    // A new kind starts from today's values.
+    var t = tt.today();
+    var c = tt.civilFromDays(t);
+    r = tt.newRule(kind);
+    r.dow = 1 << tt.dow(t);
+    r.mday = c.d;
+    r.wday = tt.dow(t);
+    r.nth = Math.floor((c.d - 1) / 7) + 1;
+    r.month = c.m;
+    r.yday = t - tt.daysFromCivil(c.y, 1, 1) + 1;
+    r.date = kind === 'once' ? tt.civilFromDays(a.minute > tt.epochToLocal(Date.now() / 1000).minute ? t : t + 1) : null;
+    a.rule = r;
+    return '';
+  }
+  if (r.kind === 'once') {
+    if (source && source.id === 'r-in') r.date = tt.civilFromDays(tt.today() + num('r-in', 0));
+    else r.date = tt.parseDate($('r-date').value) || r.date;
+  } else {
+    r.interval = Math.max(1, num('r-interval', 1));
+    r.date = $('r-start') ? tt.parseDate($('r-start').value) : null;
+    if (r.interval > 1 && !r.date) r.date = tt.civilFromDays(tt.today());
+    if (r.kind === 'weekly') {
+      r.dow = 0;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-day]'), function (el) {
+        if (el.checked) r.dow |= 1 << +el.getAttribute('data-day');
+      });
+      if (!r.dow) return 'Pick at least one day';
+    } else if (r.kind === 'monthly') {
+      var d = Math.max(1, Math.min(31, num('r-mday', 1)));
+      r.mday = $('r-fromend').value === '1' ? -d : d;
+    } else if (r.kind === 'nth') {
+      r.nth = num('r-nth', 1);
+      r.wday = num('r-wday', 0);
+    } else if (r.kind === 'yearly') {
+      r.month = num('r-month', 1);
+      r.mday = Math.max(1, Math.min(tt.daysInMonth(2024, r.month), num('r-mday', 1)));
+    } else if (r.kind === 'yday') {
+      r.yday = Math.max(1, Math.min(366, num('r-yday', 1)));
+    }
+  }
+  tt.normalizeRule(r);
+  var err = '';
+  ['snooze_a', 'snooze_b'].forEach(function (k) {
+    var v = $('ed-' + k).value.trim();
+    var m = v ? tt.parseDuration(v) : 0;
+    if (m === null) err = '"' + v + '" is not a length of time (try 10m, 117h, 2d)';
+    else if (k === 'snooze_a') a.snoozeA = m;
+    else a.snoozeB = m;
+  });
+  if (err) return err;
+  a.vibe = $('ed-vibe').value;
+  a.sound = $('ed-sound').value;
+  a.strength = num('ed-strength', 0);
+  a.ramp = $('ed-ramp').checked;
+  var every = $('ed-every').value.trim();
+  a.every = every ? tt.parseDuration(every) : 0;
+  if (a.every === null) return '"' + every + '" is not a length of time';
+  a.every = Math.min(1439, a.every);
+  a.last = inputToMinute($('ed-last').value);
+  if (a.last === null || a.last < a.minute) a.last = 1439;
+  a.until = r.kind === 'once' ? null : tt.parseDate($('ed-until').value);
+  a.done = $('ed-done').value;
+  return '';
+}
+
+function refreshEditorChoices() {
+  var a = editing.alarm;
+  var s = settings();
+  fillSelect($('ed-vibe'), [['', 'Default (' + (s.vibe || 'Pulse') + ')']].concat(patterns().map(function (p) { return [p.name, p.name]; })), a.vibe);
+  fillSelect($('ed-sound'), [['', 'Default (' + (!s.sound || s.sound === 'none' ? 'silent' : s.sound) + ')'], ['none', 'Silent']]
+    .concat(tunes().map(function (t) { return [t.name, t.name]; })), a.sound);
+  $('ed-snooze_a').placeholder = 'default ' + tt.formatDuration(+(s.snooze_a || 3));
+  $('ed-snooze_b').placeholder = 'default ' + tt.formatDuration(+(s.snooze_b || 30));
+}
+
+function showEditorState() {
+  var a = editing.alarm;
+  $('ed-strength-v').textContent = a.strength ? a.strength + '%' : 'default (' + (settings().strength || 100) + '%)';
+  $('ed-until-wrap').hidden = a.rule.kind === 'once';
+  var row = tt.formatAlarm(a);
+  $('ed-row').textContent = row;
+  var next = a.on ? tt.nextOccurrence(a, Math.floor(Date.now() / 1000)) : 0;
+  $('ed-next').textContent = !a.on ? 'Switched off.' : next ? 'Next: ' + whenText(next) + ' (' + relative(next) + ')' : 'As set, this will never ring.';
+  Array.prototype.forEach.call(document.querySelectorAll('#ed-colors button'), function (b) {
+    b.classList.toggle('on', b.getAttribute('data-c') === (a.color || ''));
+  });
+}
+
+function openEditor(a, isNew, archived) {
+  editing = { alarm: tt.parseAlarm(tt.formatAlarm(a)), isNew: isNew, archived: !!archived };
+  if (!isNew) editing.alarm.id = a.id;
+  var x = editing.alarm;
+  $('ed-title').textContent = isNew ? 'New alarm' : archived ? 'Archived alarm' : 'Edit alarm';
+  $('ed-time').value = minuteToInput(x.minute);
+  $('ed-on').checked = x.on;
+  $('ed-msg').value = x.msg;
+  $('ed-kind').value = x.rule.kind;
+  $('ed-rule').innerHTML = ruleFields(x.rule);
+  $('ed-snooze_a').value = x.snoozeA ? tt.formatDuration(x.snoozeA) : '';
+  $('ed-snooze_b').value = x.snoozeB ? tt.formatDuration(x.snoozeB) : '';
+  refreshEditorChoices();
+  $('ed-strength').value = x.strength;
+  $('ed-ramp').checked = x.ramp;
+  $('ed-every').value = x.every ? tt.formatDuration(x.every) : '';
+  $('ed-last').value = x.every && x.last < 1439 ? minuteToInput(x.last) : '';
+  $('ed-until').value = dateToInput(x.until);
+  $('ed-done').value = x.done;
+  $('ed-colors').innerHTML = COLORS.map(function (c) {
+    return '<button type="button" data-c="' + c + '" title="' + (c || 'none') + '" style="background:' + (c ? '#' + c : 'linear-gradient(135deg,var(--card) 45%,var(--danger) 47%,var(--danger) 53%,var(--card) 55%)') + '"></button>';
+  }).join('');
+  $('ed-more').hidden = isNew;
+  $('ed-try').hidden = archived;
+  $('ed-dup').hidden = archived;
+  $('ed-archive').hidden = archived;
+  showEditorState();
+  $('editor').showModal();
+}
+
+$('editor').addEventListener('input', function (e) {
+  if (!editing) return;
+  var err = readEditor(e.target);
+  if (e.target.id === 'ed-kind' || e.target.id === 'r-in' || e.target.id === 'r-date') {
+    if (e.target.id === 'ed-kind') $('ed-rule').innerHTML = ruleFields(editing.alarm.rule);
+    else if (e.target.id === 'r-in') $('r-date').value = dateToInput(editing.alarm.rule.date);
+    else $('r-in').value = Math.max(0, tt.dateToDays(editing.alarm.rule.date) - tt.today());
+  }
+  showEditorState();
+  if (err) $('ed-next').innerHTML = '<span class="err">' + esc(err) + '</span>';
+});
+$('editor').addEventListener('change', function (e) { $('editor').dispatchEvent(new Event('input')); });
+
+$('ed-colors').addEventListener('click', function (e) {
+  var c = e.target.getAttribute('data-c');
+  if (c === null) return;
+  editing.alarm.color = c;
+  showEditorState();
+});
+
+$('ed-close').addEventListener('click', function () { $('editor').close(); });
+
+$('ed-save').addEventListener('click', function () {
+  var err = readEditor(null);
+  if (err) return toast(err);
+  var a = editing.alarm;
+  if (!a.id) a.id = freshId();
+  var kind = editing.archived ? 'archive' : 'alarms';
+  send('put', kind, [tt.formatAlarm(a)]).then(function () {
+    toast(editing && editing.isNew ? 'Alarm added' : 'Saved');
+    $('editor').close();
+  });
+});
+
+$('ed-try').addEventListener('click', function () {
+  request({ type: 'play', kind: 'alarms', rows: [String(editing.alarm.id)] });
+  toast('Ringing on the watch (a preview)');
+});
+
+$('ed-dup').addEventListener('click', function () {
+  var copy = tt.parseAlarm(tt.formatAlarm(editing.alarm));
+  copy.id = 0;
+  $('editor').close();
+  openEditor(copy, true);
+});
+
+$('ed-archive').addEventListener('click', function () {
+  send('archive', 'alarms', [String(editing.alarm.id)]).then(function () { toast('Archived'); $('editor').close(); });
+});
+
+$('ed-delete').addEventListener('click', function () {
+  if (!confirm('Delete this alarm?')) return;
+  send('del', editing.archived ? 'archive' : 'alarms', [String(editing.alarm.id)]).then(function () { toast('Deleted'); $('editor').close(); });
+});
+
+// ------------------------------------------------------------- buzz composer
+
+var rec = { segs: [], down: false, edge: 0 };
+
+function showRecording() {
+  $('buzz-segs').value = rec.segs.join(' ');
+  $('buzz-bars').innerHTML = bars(rec.segs.concat(rec.down ? [Date.now() - rec.edge] : []));
+}
+
+function padDown(e) {
+  e.preventDefault();
+  if (rec.down || rec.segs.length >= 39) return;
+  var now = Date.now();
+  if (rec.segs.length) rec.segs.push(Math.min(10000, now - rec.edge));
+  rec.down = true;
+  rec.edge = now;
+  $('buzz-pad').classList.add('down');
+  if (navigator.vibrate) navigator.vibrate(10000);
+  (function tick() { if (rec.down) { showRecording(); requestAnimationFrame(tick); } })();
+}
+
+function padUp(e) {
+  if (!rec.down) return;
+  e.preventDefault();
+  rec.segs.push(Math.max(20, Math.min(10000, Date.now() - rec.edge)));
+  rec.down = false;
+  rec.edge = Date.now();
+  $('buzz-pad').classList.remove('down');
+  if (navigator.vibrate) navigator.vibrate(0);
+  showRecording();
+}
+
+$('buzz-pad').addEventListener('pointerdown', padDown);
+$('buzz-pad').addEventListener('pointerup', padUp);
+$('buzz-pad').addEventListener('pointerleave', padUp);
+$('buzz-pad').addEventListener('pointercancel', padUp);
+$('buzz-segs').addEventListener('input', function () {
+  rec.segs = $('buzz-segs').value.split(/[\s,]+/).filter(Boolean).map(Number).filter(function (v) { return v >= 0; });
+  $('buzz-bars').innerHTML = bars(rec.segs);
+});
+$('buzz-clear').addEventListener('click', function () { rec.segs = []; showRecording(); });
+
+function buzzRow() {
+  var name = $('buzz-name').value.trim();
+  if (!name) {
+    var n = 1;
+    var names = patterns().map(function (p) { return p.name; });
+    while (names.indexOf('Buzz ' + n) >= 0) n++;
+    name = 'Buzz ' + n;
+  }
+  var p = tt.parsePattern(tt.csvField(name) + ',' + rec.segs.join(' '));
+  if (!p) throw new Error('Record something first (hold the pad).');
+  return tt.formatPattern(p);
+}
+
+$('buzz-try').addEventListener('click', function () {
+  try { request({ type: 'play', kind: 'patterns', rows: [buzzRow()] }); } catch (e) { toast(e.message); }
+});
+$('buzz-save').addEventListener('click', function () {
+  try {
+    var row = buzzRow();
+    send('put', 'patterns', [row]).then(function () { toast('Saved ' + tt.parsePattern(row).name); });
+  } catch (e) { toast(e.message); }
+});
+
+$('pattern-list').addEventListener('click', function (e) {
+  var act = e.target.getAttribute('data-act');
+  var card = e.target.closest('[data-name]');
+  if (!act || !card) return;
+  var name = card.getAttribute('data-name');
+  var p = patterns().filter(function (x) { return x.name === name; })[0];
+  if (act === 'try') request({ type: 'play', kind: 'patterns', rows: [tt.formatPattern(p)] });
+  else if (act === 'edit') { rec.segs = p.segs.slice(); $('buzz-name').value = p.name; showRecording(); window.scrollTo(0, 0); }
+  else if (act === 'default') saveSetting('vibe', name);
+  else if (act === 'delete' && confirm('Delete "' + name + '"?')) send('del', 'patterns', [name]);
+});
+
+// ------------------------------------------------------------- tunes
+
+var audio = null;
+var tuneRec = { notes: [], held: null, edge: 0 };
+
+function playTune(notes) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) { return; }
+  var t = audio.currentTime + 0.05;
+  notes.forEach(function (n) {
+    if (n.midi) {
+      var osc = audio.createOscillator();
+      var gain = audio.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 440 * Math.pow(2, (n.midi - 69) / 12);
+      gain.gain.value = 0.08;
+      osc.connect(gain).connect(audio.destination);
+      osc.start(t);
+      osc.stop(t + n.ms / 1000);
+    }
+    t += n.ms / 1000;
+  });
+}
+
+function showTune() {
+  $('tune-notes').value = tuneRec.notes.map(function (n) { return n.midi + ':' + n.ms; }).join(' ');
+}
+
+(function buildKeys() {
+  var whites = [0, 2, 4, 5, 7, 9, 11];
+  var html = '';
+  var count = 0;
+  for (var oct = 0; oct < 2; oct++) whites.forEach(function (w) {
+    var midi = 60 + oct * 12 + w;
+    html += '<div class="w" data-midi="' + midi + '">' + (w === 0 ? 'C' + (4 + oct) : '') + '</div>';
+    count++;
+  });
+  html += '<div class="w" data-midi="84">C6</div>';
+  count++;
+  var x = 0;
+  for (var o = 0; o < 2; o++) [0, 2, 5, 7, 9].forEach(function (b) {
+    var whiteIndex = o * 7 + whites.indexOf(b);
+    html += '<div class="b" data-midi="' + (60 + o * 12 + b + 1) + '" style="left:calc(' + ((whiteIndex + 1) * 100 / count) + '% - 3%)"></div>';
+    x++;
+  });
+  $('keys').innerHTML = html;
+})();
+
+function keyDown(e) {
+  var midi = +e.target.getAttribute('data-midi');
+  if (!midi || tuneRec.held) return;
+  e.preventDefault();
+  var now = Date.now();
+  if (tuneRec.notes.length && now - tuneRec.edge > 60) tuneRec.notes.push({ midi: 0, ms: Math.min(1000, now - tuneRec.edge) });
+  tuneRec.held = { midi: midi, el: e.target };
+  tuneRec.edge = now;
+  e.target.classList.add('down');
+  playTune([{ midi: midi, ms: 250 }]);
+}
+
+function keyUp() {
+  if (!tuneRec.held) return;
+  tuneRec.notes.push({ midi: tuneRec.held.midi, ms: Math.max(40, Math.min(2000, Date.now() - tuneRec.edge)) });
+  tuneRec.held.el.classList.remove('down');
+  tuneRec.held = null;
+  tuneRec.edge = Date.now();
+  if (tuneRec.notes.length > 40) tuneRec.notes = tuneRec.notes.slice(0, 40);
+  showTune();
+}
+
+$('keys').addEventListener('pointerdown', keyDown);
+document.addEventListener('pointerup', keyUp);
+$('tune-notes').addEventListener('input', function () {
+  var t = tt.parseTune('x,' + $('tune-notes').value);
+  if (t) tuneRec.notes = t.notes;
+});
+$('tune-clear').addEventListener('click', function () { tuneRec.notes = []; showTune(); });
+
+function tuneRow() {
+  var name = $('tune-name').value.trim() || 'Tune ' + (tunes().length + 1);
+  var t = tt.parseTune(tt.csvField(name) + ',' + $('tune-notes').value);
+  if (!t) throw new Error('Play some notes first, or type them in.');
+  if (t.name === 'none') throw new Error('"none" is reserved; pick another name.');
+  return tt.formatTune(t);
+}
+
+$('tune-play').addEventListener('click', function () {
+  try { playTune(tt.parseTune(tuneRow()).notes); } catch (e) { toast(e.message); }
+});
+$('tune-try').addEventListener('click', function () {
+  try { request({ type: 'play', kind: 'tunes', rows: [tuneRow()] }); } catch (e) { toast(e.message); }
+});
+$('tune-save').addEventListener('click', function () {
+  try {
+    var row = tuneRow();
+    send('put', 'tunes', [row]).then(function () { toast('Saved ' + tt.parseTune(row).name); });
+  } catch (e) { toast(e.message); }
+});
+
+$('tune-list').addEventListener('click', function (e) {
+  var act = e.target.getAttribute('data-act');
+  var card = e.target.closest('[data-name]');
+  if (!act || !card) return;
+  var name = card.getAttribute('data-name');
+  var t = tunes().filter(function (x) { return x.name === name; })[0];
+  if (act === 'play') playTune(t.notes);
+  else if (act === 'try') request({ type: 'play', kind: 'tunes', rows: [tt.formatTune(t)] });
+  else if (act === 'edit') { tuneRec.notes = t.notes.slice(); $('tune-name').value = t.name; showTune(); window.scrollTo(0, 0); }
+  else if (act === 'default') saveSetting('sound', name);
+  else if (act === 'delete' && confirm('Delete "' + name + '"?')) send('del', 'tunes', [name]);
+});
+
+// ------------------------------------------------------------- settings
+
+function saveSetting(key, value) {
+  var s = settings();
+  s[key] = value;
+  return send('put', 'settings', [tt.formatSettings(s)]).then(function () { toast('Saved'); });
+}
+
+$('settings-form').addEventListener('input', function (e) {
+  settingsDirty = true;
+  $('s-strength-v').textContent = $('s-strength').value + '%';
+  $('s-volume-v').textContent = $('s-volume').value + '%';
+});
+
+$('settings-save').addEventListener('click', function () {
+  var s = settings();
+  var a = tt.parseDuration($('s-snooze_a').value);
+  var b = tt.parseDuration($('s-snooze_b').value);
+  if (!a || !b) return toast('Snoozes need a length, like 3m or 117h');
+  s.snooze_a = a;
+  s.snooze_b = b;
+  s.vibe = $('s-vibe').value;
+  s.strength = $('s-strength').value;
+  s.sound = $('s-sound').value;
+  s.volume = $('s-volume').value;
+  s.ring = Math.max(5, num('s-ring', 60));
+  s.auto = Math.max(0, num('s-auto', 5));
+  s.done = $('s-done').value;
+  s.light = $('s-light').checked ? 1 : 0;
+  s.timeline = $('s-timeline').checked ? 1 : 0;
+  settingsDirty = false;
+  send('put', 'settings', [tt.formatSettings(s)]).then(function () { toast('Settings saved'); });
+});
+
+// ------------------------------------------------------------- CSV
+
+$('export-what').addEventListener('change', renderExport);
+$('export-copy').addEventListener('click', function () {
+  var text = $('export-text').value;
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+    .then(function () { toast('Copied'); })
+    .catch(function () { $('export-text').select(); document.execCommand('copy'); toast('Copied'); });
+});
+$('export-download').addEventListener('click', function () {
+  var what = $('export-what').value;
+  var blob = new Blob([$('export-text').value], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'timeto-' + what + (what === 'settings' ? '.txt' : '.csv');
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+var importRows = null;
+function checkImport() {
+  var into = $('import-into').value;
+  var lines = tt.rowsFromText($('import-text').value).filter(function (l) { return !/^"?name"?\s*,/i.test(l); });
+  var ok = [];
+  var errors = [];
+  var taken = {};
+  alarms('alarms').concat(alarms('archive')).forEach(function (a) { taken[a.id] = true; });
+  lines.forEach(function (line, i) {
+    try {
+      if (into === 'alarms' || into === 'archive') {
+        var a = tt.parseAlarm(line);
+        if (!a.id) {
+          a.id = freshId();
+          while (taken[a.id]) a.id++;
+        }
+        taken[a.id] = true;
+        ok.push(tt.formatAlarm(a));
+      } else if (into === 'patterns') {
+        var p = tt.parsePattern(line);
+        if (!p) throw new Error('expected name,200 100 200');
+        ok.push(tt.formatPattern(p));
+      } else {
+        var t = tt.parseTune(line);
+        if (!t) throw new Error('expected name,72:150 0:50 76:300');
+        ok.push(tt.formatTune(t));
+      }
+    } catch (e) {
+      errors.push('Line ' + (i + 1) + ': ' + e.message);
+    }
+  });
+  importRows = ok;
+  $('import-go').disabled = !ok.length;
+  $('import-go').textContent = ok.length ? 'Import ' + ok.length : 'Import';
+  $('import-result').innerHTML = (ok.length ? '<div class="okmsg">' + ok.length + ' row' + (ok.length > 1 ? 's' : '') + ' ready.</div>' : '') +
+    errors.map(function (e) { return '<div class="err">' + esc(e) + '</div>'; }).join('') +
+    (!ok.length && !errors.length ? '<div class="sub">Nothing to import.</div>' : '');
+}
+$('import-check').addEventListener('click', checkImport);
+$('import-text').addEventListener('input', function () { $('import-go').disabled = true; $('import-go').textContent = 'Import'; });
+$('import-into').addEventListener('change', checkImport);
+$('import-go').addEventListener('click', function () {
+  if (!importRows || !importRows.length) return;
+  send('put', $('import-into').value, importRows).then(function () {
+    toast('Imported ' + importRows.length);
+    $('import-text').value = '';
+    importRows = null;
+    $('import-go').disabled = true;
+    $('import-result').innerHTML = '';
+  });
+});
+
+$('header-line').textContent = tt.HEADER;
+$('ref').innerHTML = [
+  ['id', 'Any whole number. Same id replaces that alarm; leave empty to add a new one.'],
+  ['on', '1 or 0. Empty means on.'],
+  ['time', 'Required. 07:30, 7:30pm, 0730.'],
+  ['rule', 'once=2026-12-25 (or just 2026-12-25), daily, daily/3, weekdays, weekends, weekly=mo.we.fr, weekly=tu/2 (every other Tuesday), monthly=15, monthly=-1 (last day), nth=2tu (2nd Tuesday), nth=-1fr (last Friday), yearly=03-14, yday=256. Add @2026-12-01 to start counting from a date. Here (not in files) you can also write today, tomorrow, friday, in 3 days. Empty = daily.'],
+  ['msg', 'The text shown when it rings. Up to 80 characters. Quote it if it has a comma.'],
+  ['snooze_a', 'Top button snooze: minutes, or 10m, 2h, 117h, 3d. Empty = the default.'],
+  ['snooze_b', 'Bottom button snooze, the same way.'],
+  ['vibe', 'Buzz pattern name. Empty = default.'],
+  ['strength', '1 to 100. Empty = default.'],
+  ['sound', 'Tune name, or none for silent. Empty = default.'],
+  ['flags', 'r = build up; and when finished: o = switch off, a = archive, d = delete.'],
+  ['every', 'Ring again every this many minutes after the first ring that day (e.g. 120).'],
+  ['last', 'The last time of day for those repeats, e.g. 17:00.'],
+  ['until', 'The last date it may ring, YYYY-MM-DD.'],
+  ['color', 'RRGGBB, e.g. ff5500.'],
+].map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + esc(r[1]) + '</td></tr>'; }).join('');
+
+connect();
+})();
+</script>
+</body>
+</html>

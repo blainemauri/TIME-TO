@@ -1,0 +1,23 @@
+{
+  "name": "time-to-face",
+  "author": "blainemauri",
+  "version": "1.0.0",
+  "keywords": ["pebble-app", "watchface"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Time To Face",
+    "uuid": "72d9bc62-e37d-47d8-ac09-be783c37d5b7",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": ["emery", "basalt", "diorite", "flint"],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": ["ROWS"],
+    "resources": {
+      "media": []
+    },
+    "usesPermissions": []
+  }
+}
