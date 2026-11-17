@@ -169,7 +169,7 @@ static void prv_update(Layer *layer, GContext *g) {
   const time_t now = time(NULL);
   if (ring->preview) {
     snprintf(heading, sizeof(heading), "PREVIEW");
-  } else if (now - ring->when > 120) {
+  } else if (now - ring->when > 120 && !ring->snoozed) {
     char ago[20];
     tt_format_relative((int32_t)(ring->when - now), ago, sizeof(ago));
     snprintf(heading, sizeof(heading), "DUE %s", ago);
@@ -344,7 +344,14 @@ void ring_show(TTAlarm *alarm, bool preview) {
   if (preview) {
     ring->preview_alarm = *alarm;
   }
-  ring->when = (!preview && alarm->next) ? alarm->next : time(NULL);
+  if (!preview && alarm->next) {
+    ring->when = alarm->next;
+  } else {
+    // A preview shows the alarm's own time of day.
+    int32_t today;
+    tt_epoch_to_local(time(NULL), &today, NULL, NULL);
+    ring->when = tt_local_to_epoch(today, alarm->minute);
+  }
   ring->snoozed = !preview && alarm->snooze_until != 0;
   ring->color = alarm->color;
   tt_copy(ring->msg, sizeof(ring->msg), alarm->msg);

@@ -497,3 +497,321 @@ void pick_choice(const char *title, const char *const *items, int count, int sel
     list_window_select(c->lw, 0, (uint16_t)selected);
   }
 }
+
+// ---------------------------------------------------------------- text
+//
+// A menu of ways to fill in text: dictation (on watches with a microphone and
+// a phone to transcribe), a few quick phrases, or spelling it out on a
+// letter wheel that needs nothing but the watch.
+
+#define TEXT_MAX 96
+
+static const char *const s_phrases[] = {
+    "Wake up",       "Take meds",     "Drink water", "Stand up and stretch",
+    "Leave now",     "Check the oven", "Call back",  "Bedtime",
+};
+
+static const char s_charset[] =
+    " abcdefghijklmnopqrstuvwxyz0123456789.,!?'-:/&@#()+ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+#define CHARSET_LEN ((int)sizeof(s_charset) - 1)
+
+typedef struct {
+  ListWindow *lw;
+  char text[TEXT_MAX];
+  size_t max_len;
+  TextPicked done;
+  void *ctx;
+  int dictate_row;  // -1 when there is no dictation
+#if defined(PBL_MICROPHONE)
+  DictationSession *dictation;
+#endif
+} TextMenu;
+
+typedef struct {
+  Window *window;
+  Layer *layer;
+  TextMenu *menu;
+  char text[TEXT_MAX];
+  int cursor;  // index into s_charset
+} Wheel;
+
+static void prv_text_finish(TextMenu *m, const char *text) {
+  // Report first: the callback refreshes the screen underneath.
+  m->done(m->ctx, text);
+  list_window_close(m->lw);
+}
+
+static void prv_wheel_update(Layer *layer, GContext *g) {
+  Wheel *w = *(Wheel **)layer_get_data(layer);
+  GRect b = layer_get_bounds(layer);
+  ui_draw_title_bar(g, b, "Spell it");
+
+  // The text so far, with a caret.
+  char shown[TEXT_MAX + 2];
+  snprintf(shown, sizeof(shown), "%s_", w->text);
+  graphics_context_set_text_color(g, GColorBlack);
+  graphics_draw_text(g, shown, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                     GRect(6, UI_TITLE_H + 2, b.size.w - 12, 82), GTextOverflowModeWordWrap,
+                     GTextAlignmentLeft, NULL);
+
+  // The wheel: the current character large, neighbours either side.
+  const int cy = b.size.h - 78;
+  graphics_context_set_fill_color(g, UI_ACCENT);
+  graphics_fill_rect(g, GRect(b.size.w / 2 - 22, cy, 44, 44), 6, GCornersAll);
+  GFont big = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
+  GFont small = fonts_get_system_font(FONT_KEY_GOTHIC_24);
+  for (int off = -3; off <= 3; off++) {
+    int i = ((w->cursor + off) % CHARSET_LEN + CHARSET_LEN) % CHARSET_LEN;
+    char c[4];
+    if (s_charset[i] == ' ') {
+      tt_copy(c, sizeof(c), "_");
+    } else {
+      c[0] = s_charset[i];
+      c[1] = '\0';
+    }
+    const int x = b.size.w / 2 + off * 28 - 14;
+    graphics_context_set_text_color(g, off == 0 ? UI_ON_ACCENT : UI_DIM);
+    graphics_draw_text(g, c, off == 0 ? big : small, GRect(x, cy + (off == 0 ? 3 : 8), 28, 34),
+                       GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  }
+  graphics_context_set_text_color(g, UI_DIM);
+  graphics_draw_text(g, "Select add  Hold done  Back erase",
+                     fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                     GRect(2, b.size.h - 26, b.size.w - 4, 20), GTextOverflowModeTrailingEllipsis,
+                     GTextAlignmentCenter, NULL);
+}
+
+static void prv_wheel_move(Wheel *w, int delta) {
+  w->cursor = ((w->cursor + delta) % CHARSET_LEN + CHARSET_LEN) % CHARSET_LEN;
+  layer_mark_dirty(w->layer);
+}
+
+static void prv_wheel_up(ClickRecognizerRef r, void *context) {
+  prv_wheel_move(context, -1);
+}
+
+static void prv_wheel_down(ClickRecognizerRef r, void *context) {
+  prv_wheel_move(context, 1);
+}
+
+static void prv_wheel_add(ClickRecognizerRef r, void *context) {
+  Wheel *w = context;
+  size_t len = strlen(w->text);
+  if (len + 1 < sizeof(w->text) && len < w->menu->max_len) {
+    w->text[len] = s_charset[w->cursor];
+    w->text[len + 1] = '\0';
+    // After the first letter, carry on in lower case.
+    if (len == 0 && s_charset[w->cursor] >= 'A' && s_charset[w->cursor] <= 'Z') {
+      w->cursor = (int)(strchr(s_charset, s_charset[w->cursor] + 32) - s_charset);
+    }
+  }
+  layer_mark_dirty(w->layer);
+}
+
+static void prv_wheel_done(ClickRecognizerRef r, void *context) {
+  Wheel *w = context;
+  TextMenu *m = w->menu;
+  char text[TEXT_MAX];
+  tt_copy(text, sizeof(text), w->text);
+  window_stack_remove(w->window, false);
+  prv_text_finish(m, text);
+}
+
+static void prv_wheel_back(ClickRecognizerRef r, void *context) {
+  Wheel *w = context;
+  size_t len = strlen(w->text);
+  if (len == 0) {
+    window_stack_remove(w->window, true);
+    return;
+  }
+  w->text[len - 1] = '\0';
+  layer_mark_dirty(w->layer);
+}
+
+static void prv_wheel_clicks(void *context) {
+  window_single_repeating_click_subscribe(BUTTON_ID_UP, 80, prv_wheel_up);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 80, prv_wheel_down);
+  window_single_click_subscribe(BUTTON_ID_SELECT, prv_wheel_add);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 600, prv_wheel_done, NULL);
+  window_single_click_subscribe(BUTTON_ID_BACK, prv_wheel_back);
+}
+
+static void prv_wheel_load(Window *window) {
+  Wheel *w = window_get_user_data(window);
+  Layer *root = window_get_root_layer(window);
+  w->layer = layer_create_with_data(layer_get_bounds(root), sizeof(Wheel *));
+  *(Wheel **)layer_get_data(w->layer) = w;
+  layer_set_update_proc(w->layer, prv_wheel_update);
+  layer_add_child(root, w->layer);
+}
+
+static void prv_wheel_unload(Window *window) {
+  Wheel *w = window_get_user_data(window);
+  layer_destroy(w->layer);
+  window_destroy(window);
+  free(w);
+}
+
+static void prv_wheel_show(TextMenu *m) {
+  Wheel *w = malloc(sizeof(Wheel));
+  if (!w) {
+    return;
+  }
+  memset(w, 0, sizeof(*w));
+  w->menu = m;
+  tt_copy(w->text, sizeof(w->text), m->text);
+  w->cursor = (int)(strchr(s_charset, w->text[0] ? 'a' : 'A') - s_charset);
+  w->window = window_create();
+  window_set_user_data(w->window, w);
+  window_set_background_color(w->window, GColorWhite);
+  window_set_click_config_provider_with_context(w->window, prv_wheel_clicks, w);
+  window_set_window_handlers(w->window, (WindowHandlers){
+                                            .load = prv_wheel_load,
+                                            .unload = prv_wheel_unload,
+                                        });
+  window_stack_push(w->window, true);
+}
+
+#if defined(PBL_MICROPHONE)
+static void prv_dictated(DictationSession *session, DictationSessionStatus status,
+                         char *transcription, void *context) {
+  TextMenu *m = context;
+  if (status == DictationSessionStatusSuccess && transcription) {
+    char text[TEXT_MAX];
+    tt_copy(text, sizeof(text), transcription);
+    prv_text_finish(m, text);
+  } else if (status == DictationSessionStatusFailureConnectivityError ||
+             status == DictationSessionStatusFailureNoSpeechDetected ||
+             status == DictationSessionStatusFailureDisabled ||
+             status == DictationSessionStatusFailureInternalError) {
+    ui_toast("Dictation didn't work. Try spelling it.");
+  }
+}
+#endif
+
+enum { TEXT_KEEP = 100, TEXT_SPELL, TEXT_CLEAR };
+
+static int prv_text_row_kind(TextMenu *m, int row) {
+  int i = 0;
+  if (m->text[0]) {
+    if (row == i++) {
+      return TEXT_KEEP;
+    }
+  }
+  if (m->dictate_row >= 0 && row == i++) {
+    return -1;  // dictate
+  }
+  if (row == i++) {
+    return TEXT_SPELL;
+  }
+  if (m->text[0]) {
+    if (row == i++) {
+      return TEXT_CLEAR;
+    }
+  }
+  return row - i;  // a phrase
+}
+
+static uint16_t prv_text_rows(void *ctx, uint16_t section) {
+  TextMenu *m = ctx;
+  return (uint16_t)((m->text[0] ? 2 : 0) + (m->dictate_row >= 0 ? 1 : 0) + 1 +
+                    (int)ARRAY_LENGTH(s_phrases));
+}
+
+static void prv_text_row(void *ctx, uint16_t section, uint16_t row, ListRow *out) {
+  TextMenu *m = ctx;
+  const int kind = prv_text_row_kind(m, row);
+  switch (kind) {
+    case TEXT_KEEP:
+      tt_copy(out->title, sizeof(out->title), "Edit current");
+      tt_copy(out->subtitle, sizeof(out->subtitle), m->text);
+      break;
+    case -1:
+      tt_copy(out->title, sizeof(out->title), "Dictate");
+      tt_copy(out->subtitle, sizeof(out->subtitle), "Speak the message");
+      break;
+    case TEXT_SPELL:
+      tt_copy(out->title, sizeof(out->title), m->text[0] ? "Spell new" : "Spell it");
+      tt_copy(out->subtitle, sizeof(out->subtitle), "Letter by letter");
+      break;
+    case TEXT_CLEAR:
+      tt_copy(out->title, sizeof(out->title), "Clear");
+      out->flags |= LIST_DANGER;
+      break;
+    default:
+      if (kind >= 0 && kind < (int)ARRAY_LENGTH(s_phrases)) {
+        tt_copy(out->title, sizeof(out->title), s_phrases[kind]);
+      }
+      break;
+  }
+}
+
+static void prv_text_select(void *ctx, uint16_t section, uint16_t row) {
+  TextMenu *m = ctx;
+  const int kind = prv_text_row_kind(m, row);
+  switch (kind) {
+    case TEXT_KEEP:
+      prv_wheel_show(m);
+      break;
+    case -1:
+#if defined(PBL_MICROPHONE)
+      if (!m->dictation) {
+        m->dictation = dictation_session_create(TEXT_MAX, prv_dictated, m);
+      }
+      if (m->dictation) {
+        dictation_session_enable_confirmation(m->dictation, true);
+        dictation_session_start(m->dictation);
+      } else {
+        ui_toast("Dictation isn't available");
+      }
+#endif
+      break;
+    case TEXT_SPELL: {
+      char saved[TEXT_MAX];
+      tt_copy(saved, sizeof(saved), m->text);
+      m->text[0] = '\0';
+      prv_wheel_show(m);
+      tt_copy(m->text, sizeof(m->text), saved);
+      break;
+    }
+    case TEXT_CLEAR:
+      prv_text_finish(m, "");
+      break;
+    default:
+      if (kind >= 0 && kind < (int)ARRAY_LENGTH(s_phrases)) {
+        prv_text_finish(m, s_phrases[kind]);
+      }
+      break;
+  }
+}
+
+static void prv_text_destroy(void *ctx) {
+  TextMenu *m = ctx;
+#if defined(PBL_MICROPHONE)
+  if (m->dictation) {
+    dictation_session_destroy(m->dictation);
+  }
+#endif
+  free(m);
+}
+
+void pick_text(const char *title, const char *initial, size_t max_len, TextPicked done,
+               void *ctx) {
+  TextMenu *m = malloc(sizeof(TextMenu));
+  if (!m) {
+    return;
+  }
+  memset(m, 0, sizeof(*m));
+  tt_copy(m->text, sizeof(m->text), initial);
+  m->max_len = max_len < TEXT_MAX - 1 ? max_len : TEXT_MAX - 1;
+  m->done = done;
+  m->ctx = ctx;
+  m->dictate_row = PBL_IF_MICROPHONE_ELSE(0, -1);
+  static const ListCallbacks callbacks = {
+      .num_rows = prv_text_rows,
+      .row = prv_text_row,
+      .select = prv_text_select,
+      .destroy = prv_text_destroy,
+  };
+  m->lw = list_window_push(title, &callbacks, m);
+}

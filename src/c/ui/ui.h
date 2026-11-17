@@ -21,7 +21,7 @@
 typedef struct {
   char title[48];
   char subtitle[64];
-  char right[14];  // short right-aligned value
+  char right[20];  // short right-aligned value
   uint8_t flags;   // LIST_*
   uint32_t tag;    // colour tag (0x1RRGGBB), 0 = none
 } ListRow;

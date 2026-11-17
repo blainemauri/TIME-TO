@@ -7,7 +7,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#if defined(PBL_SDK_3)
+#include <pebble.h>  // the watch SDK declares struct tm, mktime and localtime itself
+#else
 #include <time.h>
+#endif
 
 #define TT_MSG_MAX 81           // alarm message bytes, including the NUL
 #define TT_NAME_MAX 17          // buzz pattern / tune name bytes, including the NUL

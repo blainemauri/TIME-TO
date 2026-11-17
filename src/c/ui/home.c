@@ -140,4 +140,6 @@ void home_show(void) {
   };
   prv_appear(NULL);
   s_home = list_window_push("Time To", &callbacks, NULL);
+  // Start on "New alarm" so the card above reads as a card, not a selection.
+  list_window_select(s_home, 0, ROW_NEW);
 }
